@@ -100,7 +100,7 @@ class Geometrie:
         for i in range(int((self.e+self.li)/self.dx)+1, self.n):
             self.G[:, i] = [[0, self.Cth0] for _ in range(self.m)]
 
-    def ss(self):
+    def sans_isolation(self):
         """
         Crée une configuration sans isolation.
         Structure: [Ext | Béton | Air int]
