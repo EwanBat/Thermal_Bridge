@@ -47,12 +47,12 @@ Le projet permet d'étudier différentes configurations constructives pour rédu
 Le programme génère:
 - Une visualisation de la géométrie
 <p align="center">
-  <img src="planelle.png" width="600" alt="Géométrie du pont thermique"/>
+  <img src="image/planelle.png" width="600" alt="Géométrie du pont thermique"/>
 </p>
 
 - Les champs de température et flux thermiques
 <p align="center">
-  <img src="temp_planelle.png" width="600" alt="Champs de température et flux thermiques"/>
+  <img src="image/temp_planelle.png" width="600" alt="Champs de température et flux thermiques"/>
 </p>
 
 - Le coefficient de pont thermique Ψ
