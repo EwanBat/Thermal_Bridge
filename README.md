@@ -1,65 +1,83 @@
-# Simulation de Ponts Thermiques
+# Thermal Bridge Simulation
 
-Ce projet permet de simuler et d'analyser les ponts thermiques dans différentes configurations de murs et planchers. Il utilise la méthode des différences finies et le schéma de Jacobi pour résoudre l'équation de la chaleur en 2D.
+This project allows you to simulate and analyze thermal bridges in different wall and floor configurations. It uses the finite difference method and the Jacobi scheme to solve the 2D heat equation.
 
 ## Description
 
-Le projet permet d'étudier différentes configurations constructives pour réduire les pertes thermiques au niveau des jonctions mur/plancher:
+The project makes it possible to study different construction configurations to reduce thermal losses at wall/floor junctions:
 
-- Mur simple avec isolation 
-- Mur avec rupteur thermique
-- Mur avec planelle isolante
-- Différentes positions d'isolation
+-Simple wall with insulation
 
-## Fonctionnalités
+-Wall with a thermal break
 
-- Simulation thermique 2D en régime stationnaire
-- Calcul des champs de température
-- Visualisation des flux thermiques
-- Calcul du coefficient de pont thermique Ψ
-- Estimation des pertes énergétiques
-- Comparaison de différentes solutions constructives
+-Wall with insulating facing brick
 
-## Structure du code
+-Different insulation positions
 
-- `main.py` : Programme principal et paramètres de simulation
-- `geometrie.py` : Définition des différentes configurations géométriques
-- `fonction_calcul.py` : Fonctions de calcul numérique (Jacobi, gradients...)
-- `fonction_therm.py` : Fonctions thermiques (conditions limites, flux...)
+## Features
 
-## Paramètres ajustables
+2D steady-state thermal simulation
 
-- Dimensions géométriques (épaisseurs, hauteurs...)
-- Propriétés des matériaux (conductivités thermiques...)
-- Conditions aux limites (températures intérieure/extérieure)
-- Paramètres numériques (discrétisation, relaxation...)
+-Calculation of temperature fields
 
-## Utilisation
+-Visualization of heat fluxes
 
-1. Définir les paramètres dans `main.py`
-2. Choisir une configuration géométrique 
-3. Lancer la simulation
-4. Visualiser les résultats (champs de température, flux)
-5. Analyser les performances (coefficient Ψ, coût énergétique)
+-Calculation of the thermal bridge coefficient Ψ
 
-## Résultats
+-Estimation of energy losses
 
-Le programme génère:
-- Une visualisation de la géométrie
-<p align="center">
-  <img src="image/planelle.png" width="600" alt="Géométrie du pont thermique"/>
-</p>
+-Comparison of different construction solutions
 
-- Les champs de température et flux thermiques
-<p align="center">
-  <img src="image/temp_planelle.png" width="600" alt="Champs de température et flux thermiques"/>
-</p>
+## Code Structure
 
-- Le coefficient de pont thermique Ψ
-- Une estimation des pertes énergétiques
+-main.py: Main program and simulation parameters
 
-## Dépendances
+-geometrie.py: Definition of different geometric configurations
 
-- NumPy: Calculs numériques
-- Matplotlib: Visualisation des résultats
+-fonction_calcul.py: Numerical calculation functions (Jacobi, gradients, etc.)
 
+-fonction_therm.py: Thermal functions (boundary conditions, flux, etc.)
+
+## Adjustable Parameters
+
+-Geometric dimensions (thicknesses, heights, etc.)
+
+-Material properties (thermal conductivities, etc.)
+
+-Boundary conditions (indoor/outdoor temperatures)
+
+-Numerical parameters (discretization, relaxation, etc.)
+
+## Usage
+
+-Define the parameters in main.py
+
+-Choose a geometric configuration
+
+-Run the simulation
+
+-Visualize the results (temperature fields, fluxes)
+
+-Analyze performance (Ψ coefficient, energy cost)
+
+## Results
+
+The program generates:
+
+-A visualization of the geometry
+
+<p align="center"> <img src="image/planelle.png" width="600" alt="Thermal bridge geometry"/> </p>
+
+-Temperature and heat flux fields
+
+<p align="center"> <img src="image/temp_planelle.png" width="600" alt="Temperature and heat flux fields"/> </p>
+
+-The thermal bridge coefficient Ψ
+
+-An estimate of energy losses
+
+## Dependencies
+
+-NumPy: Numerical calculations
+
+-Matplotlib: Visualization of results

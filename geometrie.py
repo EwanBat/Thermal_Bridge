@@ -20,12 +20,16 @@ class Geometrie:
         Text2 (float): Température extérieure finale (K) 
         Tint (float): Température intérieure (K)
         Lmax (float): Dimension maximale du domaine (m)
+        P (float): Profondeur de la pièce (m)
         Cth0 (float): Conductivité thermique de l'air (W/m.K)
         Cth1 (float): Conductivité thermique du béton (W/m.K)
         Cth2 (float): Conductivité thermique de l'isolant (W/m.K)
+        hm1 (float): Coefficient d'échange surfacique extérieur (W/m².K)
         w (float): Coefficient de relaxation
+        eps_iso (float): Épaisseur d'isolation dans le plancher (m)
         Coef (float): Coefficient de position planelle/rupteur
         G (array): Matrice des propriétés thermiques [type_matériau, conductivité]
+        Nom_Geometrie (str): Nom de la configuration géométrique
     """
 
     def __init__(self, n, m, e, li, h, hi, dx, dy, dt, 
@@ -69,6 +73,21 @@ class Geometrie:
         
         self.Nom_Geometrie = ""
         self.G = None  # Attribut pour stocker la matrice
+
+    ## Mise à jour des paramètres
+    def update_params(self, **kwargs):
+        """
+        Met à jour les paramètres de la géométrie.
+        
+        Permet de modifier les attributs de la classe en passant des paires clé-valeur.
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"{key} n'est pas un attribut valide de Geometrie.")
+
+    ## Configurations géométriques possibles
 
     def mur(self):
         """
@@ -246,4 +265,4 @@ class Geometrie:
             self.G[int(self.hi/self.dy)+1:int((self.h+self.hi)/self.dy)+1, i] = [[1, self.Cth1] for _ in range(int(self.hi/self.dy)+1, int((self.h+self.hi)/self.dy)+1)]
             self.G[int((self.h+self.hi)/self.dy)+1:, i] = [[0, self.Cth0] for _ in range(int((self.h+self.hi)/self.dy)+1, self.m)]
 
-            
+    
