@@ -1,111 +1,113 @@
 import numpy as np
 
-def gradxy(geo, T, i, j):
+from geometrie import Geometry
+
+def gradxy(geo: Geometry, T: np.ndarray, i: int, j: int) -> np.ndarray:
     """
-    Calcule le gradient de température aux coordonnées (i,j)
+    Calculates the temperature gradient at coordinates (i,j)
     
     Args:
-        geo (Geometrie): Objet contenant les paramètres géométriques
-        T (np.array): Matrice des températures
-        i,j (int): Indices de position dans la grille
+        geo (Geometry): Object containing geometric parameters
+        T (np.array): Temperature matrix
+        i,j (int): Grid position indices
         
     Returns:
         np.array: Gradient [dT/dx, dT/dy]
     """
-    if i == geo.n-1:  # Bord droit
-        if j == geo.m-1:  # Coin inférieur droit
-            Y = (T[geo.m-2,i]-T[j,i])/geo.dy  # Différence finie arrière en y
-            X = (T[j,geo.n-2]-T[j,geo.n-1])/geo.dx  # Différence finie arrière en x
-        else:  # Bord droit (non coin)
-            Y = (T[j+1,i]-T[j,i])/geo.dy  # Différence finie avant en y
-            X = (T[j,geo.n-2]-T[j,geo.n-1])/geo.dx  # Différence finie arrière en x
-    else:  # Points intérieurs ou bord gauche
-        if j == geo.m-1:  # Bord inférieur
-            Y = (T[geo.m-2,i]-T[j,i])/geo.dy  # Différence finie arrière en y
-            X = (T[j,i+1]-T[j,i])/geo.dx  # Différence finie avant en x
-        else:  # Points intérieurs
-            Y = (T[j+1,i]-T[j,i])/geo.dy  # Différence finie avant en y
-            X = (T[j,i+1]-T[j,i])/geo.dx  # Différence finie avant en x
+    if i == geo.n-1:  # Right edge
+        if j == geo.m-1:  # Bottom right corner
+            Y = (T[geo.m-2,i]-T[j,i])/geo.dy  # Backward finite difference in y
+            X = (T[j,geo.n-2]-T[j,geo.n-1])/geo.dx  # Backward finite difference in x
+        else:  # Right edge (not corner)
+            Y = (T[j+1,i]-T[j,i])/geo.dy  # Forward finite difference in y
+            X = (T[j,geo.n-2]-T[j,geo.n-1])/geo.dx  # Backward finite difference in x
+    else:  # Interior points or left edge
+        if j == geo.m-1:  # Bottom edge
+            Y = (T[geo.m-2,i]-T[j,i])/geo.dy  # Backward finite difference in y
+            X = (T[j,i+1]-T[j,i])/geo.dx  # Forward finite difference in x
+        else:  # Interior points
+            Y = (T[j+1,i]-T[j,i])/geo.dy  # Forward finite difference in y
+            X = (T[j,i+1]-T[j,i])/geo.dx  # Forward finite difference in x
     return np.array([X,Y])
 
-def Initialisation(geo):
+def Initialisation(geo: Geometry) -> np.ndarray:
     """
-    Initialise le champ de température avec une variation linéaire
-    entre Text1 (extérieur) et Tint (intérieur)
+    Initializes temperature field with linear variation
+    between Text1 (exterior) and Tint (interior)
     
     Args:
-        geo (Geometrie): Objet contenant les paramètres géométriques
+        geo (Geometry): Object containing geometric parameters
         
     Returns:
-        np.array: Matrice des températures initiales
+        np.array: Initial temperature matrix
     """
     T = np.zeros([geo.m, geo.n])
     for j in range(geo.m):
         T[j,:] = [geo.Text1 - (geo.Text1-geo.Tint)*geo.dx*i/geo.Lmax for i in range(geo.n)]
     return T
 
-def calc(geo, T, i, j):
+def calc(geo: Geometry, T: np.ndarray, i: int, j: int)-> float:
     """
-    Calcule la nouvelle température au point (i,j) par la méthode de relaxation
+    Calculates new temperature at point (i,j) using relaxation method
     
     Args:
-        geo (Geometrie): Objet contenant les paramètres géométriques
-        T (np.array): Matrice des températures actuelles
-        i,j (int): Indices de position dans la grille
+        geo (Geometry): Object containing geometric parameters
+        T (np.array): Current temperature matrix
+        i,j (int): Grid position indices
         
     Returns:
-        float: Nouvelle température calculée
+        float: Calculated new temperature
     """
-    # Méthode de relaxation avec coefficient w
-    Terme = geo.w*(1/4)*(T[j+1,i] + T[j-1,i] + T[j,i+1] + T[j,i-1]) + (1-geo.w)*T[j,i]
-    return Terme
+    # Relaxation method with coefficient w
+    Term = geo.w*(1/4)*(T[j+1,i] + T[j-1,i] + T[j,i+1] + T[j,i-1]) + (1-geo.w)*T[j,i]
+    return Term
 
-def itere(geo, T, Condition):
+def itere(geo: Geometry, T: np.ndarray, Condition) -> float:
     """
-    Effectue une itération complète sur toute la grille
+    Performs a complete iteration over the entire grid
     
     Args:
-        geo (Geometrie): Objet contenant les paramètres géométriques
-        T (np.array): Matrice des températures
-        Condition (function): Fonction définissant les conditions aux limites
+        geo (Geometry): Object containing geometric parameters
+        T (np.array): Temperature matrix
+        Condition (function): Function defining boundary conditions
         
     Returns:
-        float: Somme des écarts quadratiques entre deux itérations
+        float: Sum of squared differences between two iterations
     """
-    Somme = 0
+    Sum = 0
     for i in range(geo.n):
         for j in range(geo.m):
-            Bool, val = Condition(geo, T, i, j)  # Vérifie si point aux conditions limites
-            if not Bool:  # Point interne : calcul par relaxation
-                Terme = calc(geo, T, i, j)
-            else:  # Point limite : utilise la valeur imposée
-                Terme = val
-            Somme += (Terme - T[j,i])**2  # Accumule l'écart
-            T[j,i] = Terme  # Met à jour la température
-    return Somme
+            Bool, val = Condition(geo, T, i, j)  # Check if point is at boundary conditions
+            if not Bool:  # Internal point: calculation by relaxation
+                Term = calc(geo, T, i, j)
+            else:  # Boundary point: use imposed value
+                Term = val
+            Sum += (Term - T[j,i])**2  # Accumulate difference
+            T[j,i] = Term  # Update temperature
+    return Sum
 
-def schema_jacobi(geo, Condition):
+def schema_jacobi(geo: Geometry, Condition)-> tuple:
     """
-    Résout l'équation de la chaleur par la méthode de Jacobi jusqu'à convergence
+    Solves heat equation using Jacobi method until convergence
     
     Args:
-        geo (Geometrie): Objet contenant les paramètres géométriques
-        Condition (function): Fonction définissant les conditions aux limites
+        geo (Geometry): Object containing geometric parameters
+        Condition (function): Function defining boundary conditions
         
     Returns:
-        tuple: (Matrice des températures finale, Temps de simulation)
+        tuple: (Final temperature matrix, Simulation time)
     """
-    T = Initialisation(geo)  # Initialisation du champ
-    Ind = itere(geo,T,Condition)  # Première itération
-    Compteur = 1
+    T = Initialisation(geo)  # Field initialization
+    Ind = itere(geo,T,Condition)  # First iteration
+    Counter = 1
     
-    # Itère jusqu'à convergence (seuil 0.1)
+    # Iterate until convergence (threshold 0.1)
     while Ind >= 1e-1:
         Ind = itere(geo,T,Condition)
-        Compteur += 1
+        Counter += 1
         
-    # Calcul du temps de simulation et conversion en Celsius
-    Temps_stat = round(Compteur*geo.dt/60,1)
+    # Calculate simulation time and convert to Celsius
+    Time_stat = round(Counter*geo.dt/60,1)
     T = T - 273
     
-    return T,Temps_stat
+    return T,Time_stat

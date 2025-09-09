@@ -1,53 +1,55 @@
 import numpy as np
 from fonction_calcul import gradxy
+from geometrie import Geometry
 
-############################################## Fonctions thermodynamiques #####################################################
+
+################################################ Thermodynamic Functions ###################################################
 def CL(geo, T, i, j):
     """
-    Détermine les conditions limites pour un point (j, i) dans la grille
-    en fonction de la géométrie 'geo' et des conditions physiques.
+    Determines boundary conditions for a point (j, i) in the grid
+    based on geometry 'geo' and physical conditions.
 
-    Paramètres
+    Parameters
     ----------
-    geo : objet
-        Contient la grille géométrique et les propriétés des milieux.
-        Accès aux matériaux via geo.G[y, x] -> [type, conductivité]
+    geo : Geometry
+        Contains geometric grid and material properties.
+        Access to materials via geo.G[y, x] -> [type, conductivity]
     T : 2D array
-        Tableau des températures.
+        Temperature array.
     i : int
-        Coordonnée x (indice de colonne).
+        x coordinate (column index).
     j : int
-        Coordonnée y (indice de ligne).
+        y coordinate (row index).
 
-    Retour
-    ------
+    Returns
+    -------
     tuple (bool, float)
-        - bool : True si une condition limite est appliquée, sinon False.
-        - float : Température calculée ou 0 si aucune condition.
+        - bool : True if a boundary condition is applied, False otherwise.
+        - float : Calculated temperature or 0 if no condition.
     """
 
-    # --- BORD GAUCHE : Température extérieure fixe ---
+    # --- LEFT EDGE: Fixed external temperature ---
     if i == 0:
         Tij = geo.Text2
         return True, Tij
 
-    # --- BORD DROIT : Conditions symétriques ou température intérieure ---
+    # --- RIGHT EDGE: Symmetric conditions or interior temperature ---
     elif i == geo.n - 1:
-        if j == 0:  # Coin supérieur droit
-            if geo.G[j, i][0] != 0:  # Non-air → symétrie
+        if j == 0:  # Upper right corner
+            if geo.G[j, i][0] != 0:  # Non-air → symmetry
                 Tij = geo.w * (1 / 4) * (T[j, i - 1] + T[j, i - 1] + T[j + 1, i] + T[geo.m - 2, i]) \
                       + (1 - geo.w) * T[j, i]
-            else:  # Air → température intérieure
+            else:  # Air → interior temperature
                 Tij = geo.Tint
 
-        elif j == geo.m - 1:  # Coin inférieur droit
-            if geo.G[j, i][0] != 0:  # Non-air → symétrie
+        elif j == geo.m - 1:  # Lower right corner
+            if geo.G[j, i][0] != 0:  # Non-air → symmetry
                 Tij = geo.w * (1 / 4) * (T[j, i - 1] + T[j, i - 1] + T[j - 1, i] + T[1, i]) \
                       + (1 - geo.w) * T[j, i]
-            else:  # Air → température intérieure
+            else:  # Air → interior temperature
                 Tij = geo.Tint
 
-        else:  # Bord droit sans être dans un coin
+        else:  # Right edge without being in a corner
             if geo.G[j, i][0] != 0:
                 Tij = geo.w * (1 / 4) * (T[j, i - 1] + T[j, i - 1] + T[j + 1, i] + T[j - 1, i]) \
                       + (1 - geo.w) * T[j, i]
@@ -56,149 +58,148 @@ def CL(geo, T, i, j):
 
         return True, Tij
 
-    # --- BORD SUPÉRIEUR ---
+    # --- UPPER EDGE ---
     elif j == 0:
         Tij = geo.w * (1 / 4) * (T[j, i + 1] + T[j, i - 1] + T[j + 1, i] + T[geo.m - 2, i]) \
               + (1 - geo.w) * T[j, i]
         return True, Tij
 
-    # --- BORD INFÉRIEUR ---
+    # --- LOWER EDGE ---
     elif j == geo.m - 1:
         Tij = geo.w * (1 / 4) * (T[j, i + 1] + T[j, i - 1] + T[j - 1, i] + T[1, i]) \
               + (1 - geo.w) * T[j, i]
         return True, Tij
 
-    # --- INTERFACE ENTRE DEUX MATÉRIAUX SUR L'AXE X ---
+    # --- INTERFACE BETWEEN TWO MATERIALS ON X AXIS ---
     elif geo.G[j, i][0] != geo.G[j, i + 1][0] or geo.G[j, i][0] != geo.G[j, i - 1][0]:
         lamb1 = geo.G[j, i - 1][1]
         lamb2 = geo.G[j, i + 1][1]
 
-        # Cas avec convection (type -1)
+        # Case with convection (type -1)
         if geo.G[j, i - 1][0] == -1 and geo.G[j, i][0] != geo.G[j, i - 1][0]:
             Tij = (lamb2 * T[j, i + 1] / geo.dx + T[j, i - 1] * geo.hm1) / (lamb2 / geo.dx + geo.hm1)
         elif geo.G[j, i + 1][0] == -1 and geo.G[j, i][0] != geo.G[j, i + 1][0]:
             Tij = (lamb2 * T[j, i - 1] / geo.dx + T[j, i + 1] * geo.hm1) / (lamb2 / geo.dx + geo.hm1)
-        else:  # Interface purement conductrice
+        else:  # Purely conductive interface
             Tij = (lamb1 * T[j, i - 1] + lamb2 * T[j, i + 1]) / (lamb2 + lamb1)
 
         return True, Tij
 
-    # --- INTERFACE ENTRE DEUX MATÉRIAUX SUR L'AXE Y ---
+    # --- INTERFACE BETWEEN TWO MATERIALS ON Y AXIS ---
     elif geo.G[j, i][0] != geo.G[j + 1, i][0] or geo.G[j, i][0] != geo.G[j - 1, i][0]:
         lamb1 = geo.G[j - 1, i][1]
         lamb2 = geo.G[j + 1, i][1]
 
-        # Cas avec convection (type -1)
+        # Case with convection (type -1)
         if geo.G[j - 1, i][0] == -1 and geo.G[j, i][0] != geo.G[j - 1, i][0]:
             Tij = (lamb2 * T[j + 1, i] / geo.dx + T[j - 1, i] * geo.hm1) / (lamb2 / geo.dx + geo.hm1)
         elif geo.G[j + 1, i][0] == -1 and geo.G[j, i][0] != geo.G[j + 1, i][0]:
             Tij = (lamb2 * T[j - 1, i] / geo.dx + T[j + 1, i] * geo.hm1) / (lamb2 / geo.dx + geo.hm1)
-        else:  # Interface purement conductrice
+        else:  # Purely conductive interface
             Tij = (lamb1 * T[j - 1, i] + lamb2 * T[j + 1, i]) / (lamb2 + lamb1)
 
         return True, Tij
 
-    # --- CAS PAR DÉFAUT : aucun traitement spécial, laisser l'itération ---
+    # --- DEFAULT CASE: no special treatment, continue iteration ---
     else:
         return False, 0
 
 def Jth(geo, T):
     """
-    Calcule le champ de flux thermique J dans la grille,
-    selon la loi de Fourier : 
+    Calculates the thermal flux field J in the grid,
+    according to Fourier's law:
         J = -λ * ∇T
 
-    Paramètres
+    Parameters
     ----------
-    geo : objet
-        Géométrie contenant les propriétés des matériaux.
-        Accès via geo.G[y, x, :] -> [type, conductivité]
+    geo : Geometry
+        Geometry containing material properties.
+        Access via geo.G[y, x, :] -> [type, conductivity]
     T : 2D array
-        Tableau des températures.
+        Temperature array.
 
-    Retour
-    ------
+    Returns
+    -------
     J : 3D numpy array
-        Champ des flux thermiques de taille (m, n, 2)
-        - J[:, :, 0] = composante selon y
-        - J[:, :, 1] = composante selon x
+        Thermal flux field of size (m, n, 2)
+        - J[:, :, 0] = y component
+        - J[:, :, 1] = x component
     """
-    # Initialisation du tableau des flux :
-    # dimensions = [hauteur (m), largeur (n), direction (2)]
+    # Initialize flux array:
+    # dimensions = [height (m), width (n), direction (2)]
     J = np.zeros((geo.m, geo.n, 2))
 
-    # Parcours de chaque point de la grille
-    for i in range(geo.n):       # axe x
-        for j in range(geo.m):   # axe y
-            # Gradient local de température (∇T)
+    # Loop through each grid point
+    for i in range(geo.n):       # x axis
+        for j in range(geo.m):   # y axis
+            # Local temperature gradient (∇T)
             Grad = gradxy(geo, T, i, j)
 
-            # Application de la loi de Fourier
+            # Apply Fourier's law
             J[j, i] = -geo.G[j, i, 1] * Grad
 
     return J
 
-def Psi_lin(geo0, T0, geo, T, J):
+def Psi_lin(geo0: Geometry, T0: np.ndarray, geo: Geometry, T: np.ndarray, J: np.ndarray) -> tuple[float, int, int, int]:
     """
-    Calcule le coefficient linéique Psi pour comparer les flux thermiques
-    entre un mur "référence" et le pont thermique étudié.
+    Calculates the linear thermal transmittance coefficient Psi to compare heat flows
+    between a "reference" wall and the thermal bridge under study.
 
-    Paramètres
+    Parameters
     ----------
-    geo0 : objet
-        Géométrie de référence (mur sans pont thermique).
-        Accès aux matériaux via geo0.G[y, x, :] -> [type, conductivité]
+    geo0 : Geometry
+        Reference geometry (wall without thermal bridge).
+        Access to materials via geo0.G[y, x, :] -> [type, conductivity]
     T0 : 2D array
-        Tableau des températures dans le cas du mur seul.
-    geo : objet
-        Géométrie du modèle avec pont thermique.
+        Temperature array for wall-only case.
+    geo : Geometry
+        Geometry of the model with thermal bridge.
     T : 2D array
-        Tableau des températures dans le cas avec pont thermique.
+        Temperature array for thermal bridge case.
     J : 3D array
-        Tableau des flux thermiques calculés (J[y, x, direction]).
-        direction = 0 pour y, 1 pour x.
+        Calculated heat flux array (J[y, x, direction]).
+        direction = 0 for y, 1 for x.
 
-    Retour
-    ------
+    Returns
+    -------
     float
-        Valeur du coefficient linéique Psi (W/m·K).
+        Linear thermal transmittance coefficient Psi (W/m·K).
     """
+    # --- Initialization ---
+    i = 1  # Start after exterior air
+    L_U0j = []        # Conductive flux per wall segment
+    L_deltaT = []     # Temperature differences per segment
+    L_Longueur = []   # Associated lengths
 
-    # --- Initialisation ---
-    i = 1  # On commence après l'air extérieur
-    L_U0j = []        # Flux conductifs par segment du mur
-    L_deltaT = []     # Différences de température par segment
-    L_Longueur = []   # Longueurs associées
+    compteur = 1      # Cumulative thickness of traversed material
+    T_0 = T0[0, i]    # Temperature on exterior side
+    T_lim = T0[0, i]  # Initial limit for temperature differences
 
-    compteur = 1      # Épaisseur cumulée du matériau traversé
-    T_0 = T0[0, i]    # Température côté extérieur
-    T_lim = T0[0, i]  # Limite initiale pour les différences de température
-
-    # --- Calcul des flux linéiques du mur de référence ---
-    while i < geo.n - 1:  # Jusqu'à l'air intérieur chauffé
-        # Si changement de matériau, calcul du flux pour le segment précédent
+    # --- Calculate reference wall linear fluxes ---
+    while i < geo.n - 1:  # Until heated interior air
+        # If material changes, calculate flux for previous segment
         if geo0.G[1, i + 1, 0] != geo0.G[1, i, 0]:
             L0i = compteur * geo.dx
 
-            # Ajout du flux linéique (analogie électrique)
+            # Add linear flux (electrical analogy)
             L_U0j.append(geo0.G[1, i, 1] / L0i)
             L_deltaT.append(T0[0, i] - T_lim)
             L_Longueur.append(L0i)
 
-            # Réinitialisation pour le nouveau matériau
+            # Reset for new material
             compteur = 1
             T_lim = T0[0, i]
         else:
             compteur += 1
         i += 1
 
-    # Conversion en arrays numpy pour faciliter les calculs vectorisés
+    # Convert to numpy arrays for vectorized calculations
     L_U0j = np.array(L_U0j)
     L_deltaT = np.array(L_deltaT)
     L_Longueur = np.array(L_Longueur)
 
-    # --- Détection des indices caractéristiques ---
-    if geo.Nom_Geometrie == 'plancher simple':
+    # --- Detection of characteristic indices ---
+    if geo.Nom_Geometry == 'plancher simple':
         p = int((geo.li + geo.e) / geo.dx + 1)
         q1 = int((geo.hi - geo.eps_iso) / geo.dy)
         q2 = int((geo.hi + geo.h) / geo.dy + 1)
@@ -207,9 +208,9 @@ def Psi_lin(geo0, T0, geo, T, J):
         q1 = int((geo.hi - geo.eps_iso) / geo.dy)
         q2 = int((geo.hi + geo.h + geo.eps_iso) / geo.dy + 1)
 
-    T_lim = T0[0, i]  # Température côté intérieur
+    T_lim = T0[0, i]  # Interior side temperature
 
-    # --- Calcul des flux linéiques ---
+    # --- Calculate linear fluxes ---
     Phi = geo.P * (
         np.sum(J[:q1, p, 0]) * geo.dy / geo.hi +
         np.sum(J[q2:, p, 0]) * geo.dy / geo.hi -
@@ -217,10 +218,10 @@ def Psi_lin(geo0, T0, geo, T, J):
         np.sum(np.abs(J[q2 - 1, p:, 1])) * geo.dx / geo.Lmax
     )
 
-    # Flux de référence (mur seul)
+    # Reference flux (wall only)
     Phi_default = -np.sum(L_U0j * L_deltaT) * geo.P
 
-    # --- Calcul de Psi ---
+    # --- Calculate Psi ---
     Psi = -(Phi - Phi_default) / (T_lim - T_0)
 
     return Psi, p, q1, q2

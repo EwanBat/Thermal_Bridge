@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from geometrie import Geometrie
+from geometrie import Geometry
 from fonction_calcul import schema_jacobi  # si dans le même package
 from fonction_therm import CL, Jth, Psi_lin
 from optimisation import optimisation_floor
@@ -72,11 +72,11 @@ ytick_label = ['Extérieur','Air intérieur','Béton','Matériau isolant']
 def discrete_matshow(data, ax=None):
     if ax is None:
         fig, ax = plt.subplots()
-    Cmap = plt.get_cmap('rainbow', 4)
+    Cmap = plt.get_cmap('rainbow', 4) # type: ignore
     mat = ax.matshow(data, cmap=Cmap, vmin=-1 - 0.5, vmax=2 + 0.5)
     cax = plt.colorbar(mat, ticks=np.arange(-1, 2+1), ax=ax)
     cax.ax.set_yticklabels(ytick_label)
-    ax.set_title('Géométrie ' + str(geo.Nom_Geometrie))
+    ax.set_title('Géométrie ' + str(geo.Nom_Geometry))
     ax.set_xlabel('x-axis (m)')
     ax.set_ylabel('y-axis (m)')
     ax.set_xticks(L_N[0::n//10]+L_N[-1:])
@@ -108,7 +108,7 @@ def Affiche(geo, T0, T, J, Psi):
     ax2 = fig.add_subplot(gs[0, 2])
     c2 = ax2.contourf(np.round(T, 2), 200, cmap='jet')
     fig.colorbar(c2, ax=ax2, label='Température (°C)')
-    ax2.set_title('T(x,y) pour ' + geo.Nom_Geometrie)
+    ax2.set_title('T(x,y) pour ' + geo.Nom_Geometry)
     ax2.set_xlabel('x-axis (m)')
     ax2.set_ylabel('y-axis (m)')
     ax2.set_xticks(L_N[0::n//10]+L_N[-1:])
@@ -140,15 +140,15 @@ def Affiche(geo, T0, T, J, Psi):
 
     ax2.legend()
 
-    print('Le coefficient linéaire de pont thermique est ', Psi, ' W/(m.K) (Géométrie ' + geo.Nom_Geometrie + ') \n')
+    print('Le coefficient linéaire de pont thermique est ', Psi, ' W/(m.K) (Géométrie ' + geo.Nom_Geometry + ') \n')
     print('Le coût de la perte due au pont thermique est', prix*24*(Tint-Text2)*P*Psi, '€ en 24 heures \n')
     plt.show()
 
 ################################################################### Application #####################################################################
 
-geo0 = Geometrie(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+geo0 = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
 geo0.mur()
-geo = Geometrie(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
 geo.planelle_isolant()
 
 # T,Temps_stat = Initialisation(),0
@@ -169,16 +169,16 @@ Affiche(geo,T0,T,J,Psi)
 L_li = np.round(np.arange(0.05,0.21,0.01),4)
 L_h = np.arange(0.12,0.21,0.01)
 L_Coef = np.array([i for i in range(1,9)])
-""" L_Geo = [Geometrie_ss,Geometrie_classique,Geometrie_rupteur,Geometrie_planelle_isolant,Geometrie_classique_plancher_isolant]
+""" L_Geo = [Geometry_ss,Geometry_classique,Geometry_rupteur,Geometry_planelle_isolant,Geometry_classique_plancher_isolant]
 L_Geo = L_Geo
 Dico_Moyenne = {} """
 
-geo = Geometrie(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-geo.planelle_isolant()
-e_min, e_max, n_steps = 0.05, 0.22, 20
-best_e, best_psi, L_e, L_psi = optimisation_floor(geo, e_min, e_max, n_steps)
-print(f"Épaisseur optimale de l'isolant : {best_e:.4f} m")
-print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
+# geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+# geo.planelle_isolant()
+# e_min, e_max, n_steps = 0.05, 0.22, 20
+# best_e, best_psi, L_e, L_psi = optimisation_floor(geo, e_min, e_max, n_steps)
+# print(f"Épaisseur optimale de l'isolant : {best_e:.4f} m")
+# print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 
 # for g in L_Geo:
 #     L_Psi = []
@@ -188,7 +188,7 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #         li = round(li,3)
 #         print(li)
 
-#         G0 = Geometrie_mur(n,m)
+#         G0 = Geometry_mur(n,m)
 #         G = g(n,m)
 
 #         T0,Temps_stat = schema_jacobi(G0,CL)
@@ -201,14 +201,14 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #         L_Temps.append(Temps_stat)
 
 #     Moy_g = Moyenne(L_Psi)
-#     Dico_Moyenne['G '+Nom_Geometrie] = Moy_g
+#     Dico_Moyenne['G '+Nom_Geometry] = Moy_g
 
 #     plt.figure('Psi selon isolant')
-#     plt.plot(L_li,L_Psi,label=Nom_Geometrie)
+#     plt.plot(L_li,L_Psi,label=Nom_Geometry)
 
 #     plt.figure('Temps selon isolant')
 
-#     plt.plot(L_li,L_Temps,label=Nom_Geometrie)
+#     plt.plot(L_li,L_Temps,label=Nom_Geometry)
 
 #     print('\n')
 
@@ -244,7 +244,7 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #
 #         print(h)
 #
-#         G0 = Geometrie_mur(n,m)
+#         G0 = Geometry_mur(n,m)
 #         G = g(n,m)
 #
 #         T0,Temps_stat = schema_jacobi(G0,CL)
@@ -258,12 +258,12 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #
 #     Moy_g = Moyenne(L_Psi)
 #
-#     Dico_Moyenne['G'+Nom_Geometrie] = Moy_g
+#     Dico_Moyenne['G'+Nom_Geometry] = Moy_g
 #     plt.figure('Psi selon chape')
-#     plt.plot(L_h,L_Psi,label=Nom_Geometrie)
+#     plt.plot(L_h,L_Psi,label=Nom_Geometry)
 #
 #     plt.figure('Temps selon chape')
-#     plt.plot(L_h,L_Temps,label=Nom_Geometrie)
+#     plt.plot(L_h,L_Temps,label=Nom_Geometry)
 #
 #     print('\n')
 #
@@ -298,7 +298,7 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #         Coef = i/10
 #         print(Coef)
 
-#         G0 = Geometrie_mur(n,m)
+#         G0 = Geometry_mur(n,m)
 #         G = g(n,m)
 
 #         T0,Temps_stat = schema_jacobi(G0,CL)
@@ -310,13 +310,13 @@ print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 #         L_Psi.append(Psi)
 #         L_Temps.append(Temps_stat)
 #     Moy_g = Moyenne(L_Psi)
-#     Dico_Moyenne['G'+Nom_Geometrie] = Moy_g
+#     Dico_Moyenne['G'+Nom_Geometry] = Moy_g
 
 #     plt.figure('Psi selon planelle/rupteur')
-#     plt.plot(L_Coef*e/10,L_Psi,label=Nom_Geometrie)
+#     plt.plot(L_Coef*e/10,L_Psi,label=Nom_Geometry)
 
 #     plt.figure('Temps selon planelle/rupteur')
-#     plt.plot(L_Coef*e/10,L_Temps,label=Nom_Geometrie)
+#     plt.plot(L_Coef*e/10,L_Temps,label=Nom_Geometry)
 
 #     print('\n')
 
