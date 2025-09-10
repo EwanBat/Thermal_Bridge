@@ -86,7 +86,7 @@ def itere(geo: Geometry, T: np.ndarray, Condition) -> float:
             T[j,i] = Term  # Update temperature
     return Sum
 
-def schema_jacobi(geo: Geometry, Condition)-> tuple:
+def schema_jacobi(geo: Geometry, Condition)-> tuple[np.ndarray, float]:
     """
     Solves heat equation using Jacobi method until convergence
     
