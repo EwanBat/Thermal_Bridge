@@ -173,12 +173,12 @@ L_Coef = np.array([i for i in range(1,9)])
 L_Geo = L_Geo
 Dico_Moyenne = {} """
 
-# geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-# geo.planelle_isolant()
-# e_min, e_max, n_steps = 0.05, 0.22, 20
-# best_e, best_psi, L_e, L_psi = optimisation_floor(geo, e_min, e_max, n_steps)
-# print(f"Épaisseur optimale de l'isolant : {best_e:.4f} m")
-# print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
+geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+geo.planelle_isolant()
+e_min, e_max, n_steps = 0.05, 0.22, 20
+best_e, best_psi, L_e, L_psi = optimisation_floor(geo0, geo, e_min, e_max, n_steps)
+print(f"Épaisseur optimale de l'isolant : {best_e:.4f} m")
+print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 
 # for g in L_Geo:
 #     L_Psi = []
