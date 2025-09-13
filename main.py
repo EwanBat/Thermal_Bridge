@@ -83,7 +83,7 @@ def discrete_matshow(data, ax=None):
     # Define material colors and labels
     materials = {
         -1: ('lightblue', 'External air'),
-        0: ('white', 'Interior air'),
+        0: ('lightgreen', 'Interior air'),
         1: ('gray', 'Concrete'),
         2: ('yellow', 'Insulation')
     }
@@ -125,56 +125,58 @@ def Affiche(geo, T0, T, J, Psi, p, q1, q2):
         p, q1, q2: Boundary indices for wall and floor
     """
     fig = plt.figure(constrained_layout=True, figsize=(15, 5))
-    gs = gridspec.GridSpec(1, 3, figure=fig)
+    gs = gridspec.GridSpec(1, 2, figure=fig)
 
     # Geometry with materials
     ax0 = fig.add_subplot(gs[0, 0])
     discrete_matshow(np.round(geo.G[:,:,0], 2), ax=ax0)
 
     # Temperature fields
-    for idx, (temp, title) in enumerate([(T0, 'Reference Wall'), (T, geo.Nom_Geometry)]):
-        ax = fig.add_subplot(gs[0, idx+1])
-        
-        # Convert temperatures to Celsius
-        temp_C = np.flip(np.round(temp - 273.15, 1), axis=0)
-        
-        # Create temperature plot
-        c = ax.contourf(temp_C, levels=np.linspace(temp_C.min(), temp_C.max(), 50), 
-                       cmap='jet')
-        fig.colorbar(c, ax=ax, label='Temperature (°C)')
-        
-        # Add boundary lines for wall and floor
-        if idx == 1:  # Only for thermal bridge plot
-            # Vertical wall line
-            ax.axvline(x=p, color='white', linestyle='--', alpha=0.8, label='Wall boundary')
-            
-            # Horizontal floor lines
-            ax.axhline(y=m-q1, color='red', linestyle='--', alpha=0.8, label='Upper floor boundary')
-            ax.axhline(y=m-q2, color='red', linestyle='--', alpha=0.8, label='Lower floor boundary')
-            
-            # Add legend
-            ax.legend(loc='upper right')
-            
-            # Add heat flux vectors
-            for i in range(0, n, 10):
-                for j in range(0, m, 10):
-                    Jx, Jy = J[j, i]
-                    scale = np.sqrt(Jx**2 + Jy**2)
-                    if scale > 0:
-                        ax.arrow(i, j, 5*Jx/scale, 5*Jy/scale, 
-                                head_width=1, head_length=1, fc='white', ec='white',
-                                alpha=0.5)
-        
-        # Set labels and title
-        ax.set_title(f'Temperature field: {title}')
-        ax.set_xlabel('x-axis (m)')
-        ax.set_ylabel('y-axis (m)')
-        
-        # Set ticks
-        ax.set_xticks(L_N[0::n//10]+L_N[-1:])
-        ax.set_xticklabels([f'{x:.2f}' for x in np.arange(0, Lmax+dx, Lmax/10)])
-        ax.set_yticks(L_M[0::n//10]+L_M[-1:])
-        ax.set_yticklabels([f'{y:.2f}' for y in np.arange(0, Hmax+dy, Hmax/10)])
+    temp, title = T, geo.Nom_Geometry
+    ax = fig.add_subplot(gs[0, 1])
+    
+    # Convert temperatures to Celsius
+    temp_C = np.flip(np.round(temp, 1), axis=0)
+    
+    # Create temperature plot
+    c = ax.contourf(temp_C, levels=np.linspace(temp_C.min(), temp_C.max(), 50), 
+                    cmap='jet')
+    fig.colorbar(c, ax=ax, label='Temperature (°C)')
+    
+    # Add boundary lines for wall and floor
+    # Vertical wall line (semi-infinite line from bottom)
+    ax.plot([p, p], [0, geo.m], 
+            color='white', linestyle='--', alpha=0.8, label='Wall boundary')
+    
+    # Horizontal floor lines (semi-infinite lines from wall)
+    ax.plot([p, geo.n], [geo.m-q1, geo.m-q1], 
+            color='red', linestyle='--', alpha=0.8, label='Upper floor boundary')
+    ax.plot([p, geo.n], [geo.m-q2, geo.m-q2], 
+            color='red', linestyle='--', alpha=0.8, label='Lower floor boundary')
+    
+    # Add legend
+    ax.legend(loc='upper right')
+    
+    # Add heat flux vectors
+    for i in range(0, geo.n, 10):
+        for j in range(0, geo.m, 10):
+            Jx, Jy = J[j, i]
+            scale = np.sqrt(Jx**2 + Jy**2)
+            if scale > 0:
+                ax.arrow(i, j, 5*Jx/scale, 5*Jy/scale, 
+                        head_width=1, head_length=1, fc='white', ec='white',
+                        alpha=0.5)
+    
+    # Set labels and title
+    ax.set_title(f'Temperature field: {title}')
+    ax.set_xlabel('x-axis (m)')
+    ax.set_ylabel('y-axis (m)')
+    
+    # Set ticks
+    ax.set_xticks(L_N[0::geo.n//10]+L_N[-1:])
+    ax.set_xticklabels([f'{x:.2f}' for x in np.arange(0, Lmax+dx, Lmax/10)])
+    ax.set_yticks(L_M[0::geo.n//10]+L_M[-1:])
+    ax.set_yticklabels([f'{y:.2f}' for y in np.arange(0, Hmax+dy, Hmax/10)])
 
     # Print results
     print(f'Linear thermal bridge coefficient: {Psi:.4f} W/(m·K) (Geometry: {geo.Nom_Geometry})')
@@ -198,7 +200,7 @@ geo0.mur()
 if answer == '1':
     geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, Hmax, P, 
                 Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-    geo.rupteur()  # Choix de la géométrie à simuler
+    geo.classique()  # Choix de la géométrie à simuler
 
     # T,Temps_stat = Initialisation(),0
     T0, Temps_stat = schema_jacobi(geo0,CL)
