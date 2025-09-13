@@ -152,8 +152,8 @@ geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0
 geo.planelle_isolant()
 
 # T,Temps_stat = Initialisation(),0
-T0,Temps_stat = schema_jacobi(geo0,CL)
-T,Temps_stat = schema_jacobi(geo,CL)
+T0, Temps_stat = schema_jacobi(geo0,CL)
+T, Temps_stat = schema_jacobi(geo,CL)
 
 print('Temps prit pour aller jusqu au régime stationnaire :',Temps_stat,' min \n')
 
@@ -164,7 +164,8 @@ Psi = round(Psi,4)
 
 Affiche(geo,T0,T,J,Psi)
 
-############################################################# Réduction de Psi au maximum ###########################################################################
+###################################### Réduction de Psi au maximum ###########################################
+################################ Optimisation de l'épaisseur de l'isolant ################################
 ''' Evolution de l'épaisseur d'isolant '''
 L_li = np.round(np.arange(0.05,0.21,0.01),4)
 L_h = np.arange(0.12,0.21,0.01)
@@ -175,62 +176,17 @@ Dico_Moyenne = {} """
 
 geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
 geo.planelle_isolant()
-e_min, e_max, n_steps = 0.05, 0.22, 20
-best_e, best_psi, L_e, L_psi = optimisation_floor(geo0, geo, e_min, e_max, n_steps)
-print(f"Épaisseur optimale de l'isolant : {best_e:.4f} m")
+li_min, li_max, n_steps = 0.05, 0.22, 5
+best_li, best_psi, L_li, L_psi = optimisation_floor(geo0, geo, li_min, li_max, n_steps)
+print(f"Épaisseur optimale de l'isolant : {best_li:.4f} m")
 print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
-
-# for g in L_Geo:
-#     L_Psi = []
-#     L_Temps = []
-#     print(str(g)+'\n')
-#     for li in list(L_li):
-#         li = round(li,3)
-#         print(li)
-
-#         G0 = Geometry_mur(n,m)
-#         G = g(n,m)
-
-#         T0,Temps_stat = schema_jacobi(G0,CL)
-#         T,Temps_stat = schema_jacobi(G,CL)
-
-#         J = Jth(G,T)
-
-#         Psi = round(Psi_lin(G0,T0,G,T,J),4)
-#         L_Psi.append(Psi)
-#         L_Temps.append(Temps_stat)
-
-#     Moy_g = Moyenne(L_Psi)
-#     Dico_Moyenne['G '+Nom_Geometry] = Moy_g
-
-#     plt.figure('Psi selon isolant')
-#     plt.plot(L_li,L_Psi,label=Nom_Geometry)
-
-#     plt.figure('Temps selon isolant')
-
-#     plt.plot(L_li,L_Temps,label=Nom_Geometry)
-
-#     print('\n')
-
-# plt.figure('Efficacité selon isolant')
-# plt.title('Psi moyen selon isolant')
-# plt.xylabel('Psi (W/(m.k))')
-# plt.bar([i for i in range(len(L_Geo))],Dico_Moyenne.values())
-# plt.xticks([i for i in range(len(L_Geo))],Dico_Moyenne.keys())
-
-# plt.figure('Psi selon isolant')
-# plt.title('Psi = h(li), li : épaisseur du matériau isolant')
-# plt.xlabel('épaisseur du matériau isolant (m)')
-# plt.ylabel('Psi (W/(m.K))')
-# plt.legend()
-
-# plt.figure('Temps selon isolant')
-# plt.title('Time = k(li), li : épaisseur du matériau isolant')
-# plt.xlabel('épaisseur du matériau isolant (m)')
-# plt.ylabel('Temps mis pour atteindre l état stationnaire (min)')
-# plt.legend()
-
-# plt.show()
+plt.figure('Optimisation de l\'épaisseur de l\'isolant')
+plt.plot(L_li, L_psi, marker='o')
+plt.title('Optimisation de l\'épaisseur de l\'isolant')
+plt.xlabel('Épaisseur de l\'isolant (m)')
+plt.ylabel('Coefficient linéique Ψ (W/m·K)')
+plt.grid()
+plt.show()
 
 ''' Evolution de l'épaisseur de la dalle de béton '''
 
