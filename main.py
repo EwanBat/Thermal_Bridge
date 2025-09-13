@@ -1,4 +1,4 @@
-## Import des librairies
+### Import des librairies
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -6,7 +6,7 @@ import matplotlib.gridspec as gridspec
 from geometrie import Geometry
 from fonction_calcul import schema_jacobi  # si dans le même package
 from fonction_therm import CL, Jth, Psi_lin
-from optimisation import optimisation_floor
+from optimisation import optimisation_floor, optimisation_planelle
 
 plt.close('all')
 
@@ -24,7 +24,7 @@ e = 0.22      # Épaisseur du mur en béton (m)
 h = 0.2       # Épaisseur du plancher (m) (optimal: 0.12m)
 li = 0.1      # Épaisseur de l'isolant (m) (optimal: 0.07m)
 eps_iso = 0   # Épaisseur du plancher isolant (m)
-Coef = 5/10   # Position relative planelle/rupteur (optimal: 8/10)
+Coef = 0.6   # Position relative planelle/rupteur (optimal: 8/10)
 
 # Dimensions du domaine de calcul
 Lmax = 0.8    # Largeur du domaine (m)
@@ -144,107 +144,71 @@ def Affiche(geo, T0, T, J, Psi):
     print('Le coût de la perte due au pont thermique est', prix*24*(Tint-Text2)*P*Psi, '€ en 24 heures \n')
     plt.show()
 
-################################################################### Application #####################################################################
+###################################### Commande à l'utilisateur #########################
+print("Choose which activity you want to do : \n")
+print("1 : Simple simulation of a geometry \n")
+print("2 : Optimization of the insulation thickness on the floor \n")
+print("3 : Optimization of the position of the thermal bridge breaker or the insulation strip \n")
+answer = input("Your choice (1, 2 or 3) : ")
 
-geo0 = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+geo0 = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef) # Geométrie de référence : mur
 geo0.mur()
-geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-geo.planelle_isolant()
+################################################################### Application #####################################################################
+if answer == '1':
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    geo.rupteur()
 
-# T,Temps_stat = Initialisation(),0
-T0, Temps_stat = schema_jacobi(geo0,CL)
-T, Temps_stat = schema_jacobi(geo,CL)
+    # T,Temps_stat = Initialisation(),0
+    T0, Temps_stat = schema_jacobi(geo0,CL)
+    T, Temps_stat = schema_jacobi(geo,CL)
 
-print('Temps prit pour aller jusqu au régime stationnaire :',Temps_stat,' min \n')
+    print('Temps prit pour aller jusqu au régime stationnaire :',Temps_stat,' min \n')
 
-J = Jth(geo,T)
+    J = Jth(geo,T)
 
-Psi, p, q1, q2 = Psi_lin(geo0,T0,geo,T,J)
-Psi = round(Psi,4)
+    Psi, p, q1, q2 = Psi_lin(geo0,T0,geo,T,J)
+    Psi = round(Psi,4)
 
-Affiche(geo,T0,T,J,Psi)
+    Affiche(geo,T0,T,J,Psi)
 
 ###################################### Réduction de Psi au maximum ###########################################
 ################################ Optimisation de l'épaisseur de l'isolant ################################
-''' Evolution de l'épaisseur d'isolant '''
-L_li = np.round(np.arange(0.05,0.21,0.01),4)
-L_h = np.arange(0.12,0.21,0.01)
-L_Coef = np.array([i for i in range(1,9)])
-""" L_Geo = [Geometry_ss,Geometry_classique,Geometry_rupteur,Geometry_planelle_isolant,Geometry_classique_plancher_isolant]
-L_Geo = L_Geo
-Dico_Moyenne = {} """
+elif answer == '2':
+    ''' Evolution de l'épaisseur d'isolant '''
 
-geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-geo.planelle_isolant()
-li_min, li_max, n_steps = 0.05, 0.22, 5
-best_li, best_psi, L_li, L_psi = optimisation_floor(geo0, geo, li_min, li_max, n_steps)
-print(f"Épaisseur optimale de l'isolant : {best_li:.4f} m")
-print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
-plt.figure('Optimisation de l\'épaisseur de l\'isolant')
-plt.plot(L_li, L_psi, marker='o')
-plt.title('Optimisation de l\'épaisseur de l\'isolant')
-plt.xlabel('Épaisseur de l\'isolant (m)')
-plt.ylabel('Coefficient linéique Ψ (W/m·K)')
-plt.grid()
-plt.show()
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    method_name = 'planelle_isolant'
 
-''' Evolution de l'épaisseur de la dalle de béton '''
+    li_min, li_max, n_steps = 0.05, 0.22, 5
+    best_li, best_psi, L_li, L_psi = optimisation_floor(geo0, geo, li_min, li_max, n_steps, method_name)
+    print(f"Épaisseur optimale de l'isolant : {best_li:.4f} m")
+    print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
 
-# for g in L_Geo:
-#     L_Psi = []
-#     L_Temps = []
-#     print(str(g)+'\n')
-#     for h in L_h:
-#         h = round(h,4)
-#         hi = round((Hmax-h)/2,3) #Demi hauteur de l'isolant en m
-#
-#         print(h)
-#
-#         G0 = Geometry_mur(n,m)
-#         G = g(n,m)
-#
-#         T0,Temps_stat = schema_jacobi(G0,CL)
-#         T,Temps_stat = schema_jacobi(G,CL)
-#
-#         J = Jth(G,T)
-#
-#         Psi = round(Psi_lin(G0,T0,G,T,J),4)
-#         L_Psi.append(Psi)
-#         L_Temps.append(Temps_stat)
-#
-#     Moy_g = Moyenne(L_Psi)
-#
-#     Dico_Moyenne['G'+Nom_Geometry] = Moy_g
-#     plt.figure('Psi selon chape')
-#     plt.plot(L_h,L_Psi,label=Nom_Geometry)
-#
-#     plt.figure('Temps selon chape')
-#     plt.plot(L_h,L_Temps,label=Nom_Geometry)
-#
-#     print('\n')
-#
-# plt.figure('Efficacité selon chape')
-# plt.title('Psi moyen selon chape')
-# plt.xlabel('Psi (W/(m.k))')
-# plt.ylabel('épaisseur de la chape (m)')
-# plt.bar([i for i in range(len(L_Geo))],Dico_Moyenne.values())
-# plt.xticks([i for i in range(len(L_Geo))],Dico_Moyenne.keys())
-#
-# plt.figure('Psi selon chape')
-# plt.title('Psi = h(h), h : épaisseur de la chape de béton')
-# plt.xlabel('épaisseur de la chape (m)')
-# plt.ylabel('Psi (W/(m.K))')
-# plt.legend()
-#
-# plt.figure('Temps selon chape')
-# plt.title('Time = k(h), h : épaisseur de la chape de béton')
-# plt.xlabel('épaisseur de la chape (m)')
-# plt.ylabel('Temps mis pour atteindre l état stationnaire (min)')
-# plt.legend()
-#
-# plt.show()
+    plt.figure('Optimisation de l\'épaisseur de l\'isolant')
+    plt.plot(L_li, L_psi, marker='o')
+    plt.title('Optimisation de l\'épaisseur de l\'isolant')
+    plt.xlabel('Épaisseur de l\'isolant (m)')
+    plt.ylabel('Coefficient linéique Ψ (W/m·K)')
+    plt.grid()
+    plt.show()
 
-''' Emplacement de la planelle ou du rupteur '''
+elif answer == '3':
+    ''' Emplacement de la planelle ou du rupteur '''
+
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    method_name = "rupteur"  # ou 'planelle_isolant'
+    best_Coef, best_psi, L_Coef, L_psi = optimisation_planelle(geo0, geo, method_name)
+    print(f"Position optimale de la planelle/rupteur : {best_Coef:.2f} m")
+    print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/(m·K)")
+
+    plt.figure('Optimisation de la position de la planelle/rupteur')
+    plt.plot(L_Coef, L_psi, marker='o')
+    plt.title('Optimisation de la position de la planelle/rupteur')
+    plt.xlabel('Position de la planelle/rupteur (m)')
+    plt.ylabel('Coefficient linéique Ψ (W/m·K)')
+    plt.grid()
+    plt.show()
+
 
 # for g in L_Geo[2:4]:
 #     L_Psi = []

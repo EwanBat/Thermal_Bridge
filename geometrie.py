@@ -88,6 +88,33 @@ class Geometry:
             else:
                 raise AttributeError(f"{key} n'est pas un attribut valide de Geometry.")
 
+    def update_geometry(self, method: str):
+        """
+        Updates the geometry configuration based on the specified method.
+        
+        Args:
+            method (str): The method name corresponding to the desired configuration.
+                          Options include 'mur', 'mur_inv', 'sans_isolation', 'classique',
+                          'inv', 'rupteur', 'planelle_isolant', 'classique_plancher_isolant',
+                          and 'classique_plancher_simple'.
+        """
+        method_dict = {
+            'mur': self.mur,
+            'mur_inv': self.mur_inv,
+            'sans_isolation': self.sans_isolation,
+            'classique': self.classique,
+            'inv': self.inv,
+            'rupteur': self.rupteur,
+            'planelle_isolant': self.planelle_isolant,
+            'classique_plancher_isolant': self.classique_plancher_isolant,
+            'classique_plancher_simple': self.classique_plancher_simple
+        }
+        
+        if method in method_dict:
+            method_dict[method]()
+        else:
+            raise ValueError(f"Méthode '{method}' non reconnue. Options valides: {list(method_dict.keys())}")
+
     ## Configurations géométriques possibles
 
     def mur(self):
@@ -96,7 +123,6 @@ class Geometry:
         Structure: [Ext | Concrete | Insulation | Int air]
         """
         self.Nom_Geometry = 'murale'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -111,7 +137,6 @@ class Geometry:
         Structure: [Ext | Insulation | Concrete | Int air]
         """
         self.Nom_Geometry = 'murale inversée'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.li/self.dx)+1):
             self.G[:, i] = [[2, self.Cth2] for _ in range(self.m)]
@@ -126,7 +151,6 @@ class Geometry:
         Structure: [Ext | Concrete | Int air]
         """
         self.Nom_Geometry = 'sans isolation'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -141,7 +165,6 @@ class Geometry:
         Structure: [Ext | Concrete | Insulation+Concrete | Int air]
         """
         self.Nom_Geometry = 'classique'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -160,7 +183,6 @@ class Geometry:
         Structure: [Ext | Insulation | Concrete+Floor | Int air]
         """
         self.Nom_Geometry = 'inversée'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.li/self.dx)+1):
             self.G[:, i] = [[2, self.Cth2] for _ in range(self.m)]
@@ -178,7 +200,6 @@ class Geometry:
         The thermal break is an air zone between two concrete sections.
         """
         self.Nom_Geometry = 'rupteur thermique'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.Coef*self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -204,7 +225,6 @@ class Geometry:
         The block is an insulation zone between two concrete sections.
         """
         self.Nom_Geometry = 'planelle isolant'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.Coef*self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -230,7 +250,6 @@ class Geometry:
         Includes an insulation layer in the floor.
         """
         self.Nom_Geometry = 'plancher isolé'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -252,7 +271,6 @@ class Geometry:
         Simplified version without additional floor insulation.
         """
         self.Nom_Geometry = 'plancher simple'
-        self.G = np.zeros([self.m, self.n, 2])
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
