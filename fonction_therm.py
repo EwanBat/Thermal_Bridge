@@ -199,14 +199,18 @@ def Psi_lin(geo0: Geometry, T0: np.ndarray, geo: Geometry, T: np.ndarray, J: np.
     L_Longueur = np.array(L_Longueur)
 
     # --- Detection of characteristic indices ---
-    if geo.Nom_Geometry == 'plancher simple':
+    if geo.Nom_Geometry == 'one face insulated floor':
         p = int((geo.li + geo.e) / geo.dx + 1)
         q1 = int((geo.hi - geo.eps_iso) / geo.dy)
         q2 = int((geo.hi + geo.h) / geo.dy + 1)
-    else:
+    elif geo.Nom_Geometry == 'double face insulated floor':
         p = int((geo.li + geo.e) / geo.dx + 1)
         q1 = int((geo.hi - geo.eps_iso) / geo.dy)
         q2 = int((geo.hi + geo.h + geo.eps_iso) / geo.dy + 1)
+    else:
+        p = int((geo.li + geo.e) / geo.dx + 1)
+        q1 = int((geo.hi) / geo.dy)
+        q2 = int((geo.hi + geo.h) / geo.dy + 1)
 
     T_lim = T0[0, i]  # Interior side temperature
 
@@ -225,4 +229,5 @@ def Psi_lin(geo0: Geometry, T0: np.ndarray, geo: Geometry, T: np.ndarray, J: np.
     Psi = -(Phi - Phi_default) / (T_lim - T_0)
 
     return Psi, p, q1, q2
+
 

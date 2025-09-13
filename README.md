@@ -66,15 +66,15 @@ The program generates:
 
 -A visualization of the geometry
 
-<p align="center"> <img src="image/planelle.png" width="600" alt="Thermal bridge geometry"/> </p>
-
 -Temperature and heat flux fields
-
-<p align="center"> <img src="image/temp_planelle.png" width="600" alt="Temperature and heat flux fields"/> </p>
 
 -The thermal bridge coefficient Ψ
 
 -An estimate of energy losses
+
+<p align="center"> <img src="image/mur.png" width="600" alt="Thermal bridge geometry"/> </p>
+
+<p align="center"> <img src="image/planelle.png" width="600" alt="Temperature field"/> </p>
 
 ## Dependencies
 

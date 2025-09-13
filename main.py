@@ -1,211 +1,255 @@
-### Import des librairies
+### Library imports
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 from geometrie import Geometry
-from fonction_calcul import schema_jacobi  # si dans le même package
+from fonction_calcul import schema_jacobi
 from fonction_therm import CL, Jth, Psi_lin
 from optimisation import optimisation_floor, optimisation_planelle
 
 plt.close('all')
 
-## Simulation d'un pont thermique en 2D
-# Paramétrage
+## 2D thermal bridge simulation
+# Settings
 ################################################################
-# PARAMÈTRES DE SIMULATION
+# SIMULATION PARAMETERS
 ################################################################
 
-# Paramètres économiques
-prix = 0.2062e-3  # Prix du kWh en euros
+# Economic parameters
+prix = 0.2062e-3  # Price per kWh in euros
 
-# Paramètres géométriques du bâtiment
-e = 0.22      # Épaisseur du mur en béton (m)
-h = 0.2       # Épaisseur du plancher (m) (optimal: 0.12m)
-li = 0.1      # Épaisseur de l'isolant (m) (optimal: 0.07m)
-eps_iso = 0   # Épaisseur du plancher isolant (m)
-Coef = 0.6   # Position relative planelle/rupteur (optimal: 8/10)
+# Building geometric parameters
+e = 0.22      # Concrete wall thickness (m)
+h = 0.2       # Floor thickness (m) (optimal: 0.12m)
+li = 0.1      # Insulation thickness (m) (optimal: 0.07m)
+eps_iso = 0.1 # Floor insulation thickness (m)
+Coef = 0.6    # Relative position of block/thermal break (optimal: 8/10)
 
-# Dimensions du domaine de calcul
-Lmax = 0.8    # Largeur du domaine (m)
-Hmax = 0.8    # Hauteur du domaine (m)
-P = 2         # Profondeur de la pièce (m)
-S = P*Hmax    # Surface de la paroi (m²)
-hi = round((Hmax-h)/2, 3)  # Demi-hauteur de l'isolant (m)
+# Calculation domain dimensions
+Lmax = 0.8    # Domain width (m)
+Hmax = 0.8    # Domain height (m)
+P = 2         # Room depth (m)
+S = P*Hmax    # Wall surface area (m²)
+hi = round((Hmax-h)/2, 3)  # Height of interface air-wall (m)
 
-# Propriétés thermiques des matériaux
-## Béton
-Cth1 = 1.65   # Conductivité thermique (W/m.K)
-Cp1 = 1000    # Capacité thermique (J/kg.K)
-rho1 = 2150   # Masse volumique (kg/m³)
+# Thermal properties of materials
+## Concrete
+Cth1 = 1.65   # Thermal conductivity (W/m.K)
+Cp1 = 1000    # Heat capacity (J/kg.K)
+rho1 = 2150   # Density (kg/m³)
 
-## Isolant
-Cth2 = 0.03   # Conductivité thermique (W/m.K)
+## Insulation
+Cth2 = 0.03   # Thermal conductivity (W/m.K)
 
 ## Air
-Cth0 = 0.024  # Conductivité thermique (W/m.K)
-h0 = 6        # Coefficient d'échange surfacique intérieur (W/m².K)
-hm1 = 15      # Coefficient d'échange surfacique extérieur (W/m².K)
+Cth0 = 0.024  # Thermal conductivity (W/m.K)
+h0 = 6        # Interior surface heat transfer coefficient (W/m².K)
+hm1 = 15      # Exterior surface heat transfer coefficient (W/m².K)
 
-## Acier (pour rupteur)
-Cth3 = 50.2   # Conductivité thermique (W/m.K)
+## Steel (for thermal break)
+Cth3 = 50.2   # Thermal conductivity (W/m.K)
 
-# Paramètres thermiques
-Tint = 19 + 273    # Température intérieure (K)
-Text1 = 10 + 273   # Température extérieure initiale (K)
-Text2 = -10 + 273  # Température extérieure finale (K)
-a = Cth1/Cp1/rho1  # Diffusivité thermique du béton (m²/s)
+# Thermal parameters
+Tint = 19 + 273    # Interior temperature (K)
+Text1 = 10 + 273   # Initial exterior temperature (K)
+Text2 = -10 + 273  # Final exterior temperature (K)
+a = Cth1/Cp1/rho1  # Thermal diffusivity of concrete (m²/s)
 
-# Paramètres numériques
-n, m = 100, 100    # Nombre de points de discrétisation en x et y
-dx = Lmax/n        # Pas d'espace en x (m)
-dy = Hmax/m        # Pas d'espace en y (m)
-dt = 0.25*min(dx,dy)**2/a  # Pas de temps (s) - Condition CFL
-tmax = 1500        # Durée totale de simulation (s)
-w = 2/(1 + np.pi/n)  # Coefficient de relaxation
+# Numerical parameters
+n, m = 100, 100    # Number of discretization points in x and y
+dx = Lmax/n        # Space step in x (m)
+dy = Hmax/m        # Space step in y (m)
+dt = 0.25*min(dx,dy)**2/a  # Time step (s) - CFL condition
+tmax = 1500        # Total simulation duration (s)
+w = 2/(1 + np.pi/n)  # Relaxation coefficient
 
-## Fonctions utilitaires
+## Utility functions
 x,y = np.arange(0,Lmax,dx),np.arange(0,Hmax,dy)
 L_N,L_M = [i for i in range(n)],[j for j in range(m)]
-ytick_label = ['Extérieur','Air intérieur','Béton','Matériau isolant']
+ytick_label = ['Exterior','Interior air','Concrete','Insulation material']
 
 def discrete_matshow(data, ax=None):
+    """
+    Display geometry with material colors and labels
+    
+    Parameters:
+        data: Material type matrix from geo.G[:,:,0]
+        ax: Matplotlib axis for plotting
+    """
     if ax is None:
         fig, ax = plt.subplots()
-    Cmap = plt.get_cmap('rainbow', 4) # type: ignore
-    mat = ax.matshow(data, cmap=Cmap, vmin=-1 - 0.5, vmax=2 + 0.5)
-    cax = plt.colorbar(mat, ticks=np.arange(-1, 2+1), ax=ax)
-    cax.ax.set_yticklabels(ytick_label)
-    ax.set_title('Géométrie ' + str(geo.Nom_Geometry))
+        
+    # Define material colors and labels
+    materials = {
+        -1: ('lightblue', 'External air'),
+        0: ('white', 'Interior air'),
+        1: ('gray', 'Concrete'),
+        2: ('yellow', 'Insulation')
+    }
+    
+    # Create custom colormap
+    colors = [materials[i][0] for i in [-1, 0, 1, 2]]
+    cmap = plt.matplotlib.colors.ListedColormap(colors)  # type: ignore
+    
+    # Display material matrix
+    mat = ax.matshow(np.flip(data, axis=0), cmap=cmap, vmin=-1.5, vmax=2.5)
+    
+    # Create custom legend
+    patches = [plt.matplotlib.patches.Patch(color=materials[i][0],  # type: ignore
+                                          label=materials[i][1]) 
+              for i in [-1, 0, 1, 2]]
+    ax.legend(handles=patches, bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Set labels and title
+    ax.set_title('Geometry: ' + str(geo.Nom_Geometry))
     ax.set_xlabel('x-axis (m)')
     ax.set_ylabel('y-axis (m)')
+    
+    # Set ticks
     ax.set_xticks(L_N[0::n//10]+L_N[-1:])
-    ax.set_xticklabels(list(x[0::n//10])+[Lmax])
+    ax.set_xticklabels([f'{x:.2f}' for x in np.arange(0, Lmax+dx, Lmax/10)])
     ax.set_yticks(L_M[0::n//10]+L_M[-1:])
-    ax.set_yticklabels(list(y[0::n//10])+[Hmax])
+    ax.set_yticklabels([f'{y:.2f}' for y in np.arange(0, Hmax+dy, Hmax/10)])
 
-def Affiche(geo, T0, T, J, Psi):
+def Affiche(geo, T0, T, J, Psi, p, q1, q2):
+    """
+    Display geometry, temperature fields and heat flux with boundary lines
+    
+    Parameters:
+        geo: Geometry object
+        T0: Reference temperature field
+        T: Temperature field with thermal bridge
+        J: Heat flux field
+        Psi: Linear thermal transmittance
+        p, q1, q2: Boundary indices for wall and floor
+    """
     fig = plt.figure(constrained_layout=True, figsize=(15, 5))
     gs = gridspec.GridSpec(1, 3, figure=fig)
 
-    # Géométrie
+    # Geometry with materials
     ax0 = fig.add_subplot(gs[0, 0])
     discrete_matshow(np.round(geo.G[:,:,0], 2), ax=ax0)
 
-    # Température mur
-    ax1 = fig.add_subplot(gs[0, 1])
-    c1 = ax1.contourf(np.round(T0, 2), 200, cmap='jet')
-    fig.colorbar(c1, ax=ax1, label='Température (°C)')
-    ax1.set_title('T(x,y) pour un mur')
-    ax1.set_xlabel('x-axis (m)')
-    ax1.set_ylabel('y-axis (m)')
-    ax1.set_xticks(L_N[0::n//10]+L_N[-1:])
-    ax1.set_xticklabels(list(x[0::n//10])+[Lmax])
-    ax1.set_yticks(L_M[0::n//10]+L_M[-1:])
-    ax1.set_yticklabels(list(y[0::n//10])+[Hmax])
+    # Temperature fields
+    for idx, (temp, title) in enumerate([(T0, 'Reference Wall'), (T, geo.Nom_Geometry)]):
+        ax = fig.add_subplot(gs[0, idx+1])
+        
+        # Convert temperatures to Celsius
+        temp_C = np.flip(np.round(temp - 273.15, 1), axis=0)
+        
+        # Create temperature plot
+        c = ax.contourf(temp_C, levels=np.linspace(temp_C.min(), temp_C.max(), 50), 
+                       cmap='jet')
+        fig.colorbar(c, ax=ax, label='Temperature (°C)')
+        
+        # Add boundary lines for wall and floor
+        if idx == 1:  # Only for thermal bridge plot
+            # Vertical wall line
+            ax.axvline(x=p, color='white', linestyle='--', alpha=0.8, label='Wall boundary')
+            
+            # Horizontal floor lines
+            ax.axhline(y=m-q1, color='red', linestyle='--', alpha=0.8, label='Upper floor boundary')
+            ax.axhline(y=m-q2, color='red', linestyle='--', alpha=0.8, label='Lower floor boundary')
+            
+            # Add legend
+            ax.legend(loc='upper right')
+            
+            # Add heat flux vectors
+            for i in range(0, n, 10):
+                for j in range(0, m, 10):
+                    Jx, Jy = J[j, i]
+                    scale = np.sqrt(Jx**2 + Jy**2)
+                    if scale > 0:
+                        ax.arrow(i, j, 5*Jx/scale, 5*Jy/scale, 
+                                head_width=1, head_length=1, fc='white', ec='white',
+                                alpha=0.5)
+        
+        # Set labels and title
+        ax.set_title(f'Temperature field: {title}')
+        ax.set_xlabel('x-axis (m)')
+        ax.set_ylabel('y-axis (m)')
+        
+        # Set ticks
+        ax.set_xticks(L_N[0::n//10]+L_N[-1:])
+        ax.set_xticklabels([f'{x:.2f}' for x in np.arange(0, Lmax+dx, Lmax/10)])
+        ax.set_yticks(L_M[0::n//10]+L_M[-1:])
+        ax.set_yticklabels([f'{y:.2f}' for y in np.arange(0, Hmax+dy, Hmax/10)])
 
-    # Température géométrie
-    ax2 = fig.add_subplot(gs[0, 2])
-    c2 = ax2.contourf(np.round(T, 2), 200, cmap='jet')
-    fig.colorbar(c2, ax=ax2, label='Température (°C)')
-    ax2.set_title('T(x,y) pour ' + geo.Nom_Geometry)
-    ax2.set_xlabel('x-axis (m)')
-    ax2.set_ylabel('y-axis (m)')
-    ax2.set_xticks(L_N[0::n//10]+L_N[-1:])
-    ax2.set_xticklabels(list(x[0::n//10])+[Lmax])
-    ax2.set_yticks(L_M[0::n//10]+L_M[-1:])
-    ax2.set_yticklabels(list(y[0::n//10])+[Hmax])
-
-    # Ajout des vecteurs de flux thermique sur la dernière figure
-    Compteur = 0
-    for i in range(n):
-        for j in range(m):
-            if i % 10 == 0 and j % 10 == 0:
-                Grad = J[j, i]
-                di, dj = Grad[0], Grad[1]
-                if Compteur == 0:
-                    ax2.arrow(i, j, di, dj, label='Jth = g(x,t)', width=0.3, color='black')
-                    Compteur = 1
-                else:
-                    ax2.arrow(i, j, di, dj, width=0.3, color='black')
-
-    # Affichage des lignes de séparation (si p, q1, q2 existent)
-    try:
-        ax2.plot([p, n], [q1, q1], color='white')
-        ax2.plot([p, n], [q2, q2], color='white')
-        ax2.plot([p, p], [0, q1], color='white')
-        ax2.plot([p, p], [q2, m], color='white')
-    except NameError:
-        pass
-
-    ax2.legend()
-
-    print('Le coefficient linéaire de pont thermique est ', Psi, ' W/(m.K) (Géométrie ' + geo.Nom_Geometry + ') \n')
-    print('Le coût de la perte due au pont thermique est', prix*24*(Tint-Text2)*P*Psi, '€ en 24 heures \n')
+    # Print results
+    print(f'Linear thermal bridge coefficient: {Psi:.4f} W/(m·K) (Geometry: {geo.Nom_Geometry})')
+    print(f'Cost of thermal bridge losses: {prix*24*(Tint-Text2)*P*Psi:.4f} € per day')
+    
     plt.show()
 
 ###################################### Commande à l'utilisateur #########################
-print("Choose which activity you want to do : \n")
-print("1 : Simple simulation of a geometry \n")
-print("2 : Optimization of the insulation thickness on the floor \n")
-print("3 : Optimization of the position of the thermal bridge breaker or the insulation strip \n")
-answer = input("Your choice (1, 2 or 3) : ")
+print("Choose which activity you want to do:\n")
+print("1: Simple simulation of a geometry\n")
+print("2: Optimization of the insulation thickness on the floor\n")
+print("3: Optimization of the position of the thermal bridge breaker or the insulation strip\n")
+answer = input("Your choice (1, 2 or 3): ")
 
-geo0 = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef) # Geométrie de référence : mur
+# Reference geometry: wall
+geo0 = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, Hmax, P, 
+                Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
 geo0.mur()
+
 ################################################################### Application #####################################################################
 if answer == '1':
-    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
-    geo.rupteur()
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, Hmax, P, 
+                Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    geo.rupteur()  # Choix de la géométrie à simuler
 
     # T,Temps_stat = Initialisation(),0
     T0, Temps_stat = schema_jacobi(geo0,CL)
     T, Temps_stat = schema_jacobi(geo,CL)
 
-    print('Temps prit pour aller jusqu au régime stationnaire :',Temps_stat,' min \n')
+    print('Time taken to reach steady state:', Temps_stat, 'min\n')
 
     J = Jth(geo,T)
 
     Psi, p, q1, q2 = Psi_lin(geo0,T0,geo,T,J)
     Psi = round(Psi,4)
-
-    Affiche(geo,T0,T,J,Psi)
+    
+    Affiche(geo,T0,T,J,Psi,p,q1,q2)
 
 ###################################### Réduction de Psi au maximum ###########################################
 ################################ Optimisation de l'épaisseur de l'isolant ################################
 elif answer == '2':
-    ''' Evolution de l'épaisseur d'isolant '''
+    ''' Evolution of insulation thickness '''
 
-    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, Hmax, P, 
+                Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
     method_name = 'planelle_isolant'
 
     li_min, li_max, n_steps = 0.05, 0.22, 5
     best_li, best_psi, L_li, L_psi = optimisation_floor(geo0, geo, li_min, li_max, n_steps, method_name)
-    print(f"Épaisseur optimale de l'isolant : {best_li:.4f} m")
-    print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/m·K")
+    print(f"Optimal insulation thickness: {best_li:.4f} m")
+    print(f"Corresponding linear thermal transmittance Ψ: {best_psi:.4f} W/m·K")
 
-    plt.figure('Optimisation de l\'épaisseur de l\'isolant')
+    plt.figure('Insulation Thickness Optimization')
     plt.plot(L_li, L_psi, marker='o')
-    plt.title('Optimisation de l\'épaisseur de l\'isolant')
-    plt.xlabel('Épaisseur de l\'isolant (m)')
-    plt.ylabel('Coefficient linéique Ψ (W/m·K)')
+    plt.title('Insulation Thickness Optimization')
+    plt.xlabel('Insulation thickness (m)')
+    plt.ylabel('Linear thermal transmittance Ψ (W/m·K)')
     plt.grid()
     plt.show()
 
 elif answer == '3':
-    ''' Emplacement de la planelle ou du rupteur '''
+    ''' Position of insulation block or thermal break '''
 
-    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, P, Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
+    geo = Geometry(n, m, e, li, hi, h, dx, dy, dt, Text1, Text2, Tint, Lmax, Hmax, P, 
+                Cth0, Cth1, Cth2, hm1, w, eps_iso, Coef)
     method_name = "rupteur"  # ou 'planelle_isolant'
     best_Coef, best_psi, L_Coef, L_psi = optimisation_planelle(geo0, geo, method_name)
-    print(f"Position optimale de la planelle/rupteur : {best_Coef:.2f} m")
-    print(f"Coefficient linéique Ψ correspondant : {best_psi:.4f} W/(m·K)")
+    print(f"Optimal position of block/thermal break: {best_Coef:.2f} m")
+    print(f"Corresponding linear thermal transmittance Ψ: {best_psi:.4f} W/(m·K)")
 
-    plt.figure('Optimisation de la position de la planelle/rupteur')
+    plt.figure('Block/Thermal Break Position Optimization')
     plt.plot(L_Coef, L_psi, marker='o')
-    plt.title('Optimisation de la position de la planelle/rupteur')
-    plt.xlabel('Position de la planelle/rupteur (m)')
-    plt.ylabel('Coefficient linéique Ψ (W/m·K)')
+    plt.title('Block/Thermal Break Position Optimization')
+    plt.xlabel('Block/Thermal break position (m)')
+    plt.ylabel('Linear thermal transmittance Ψ (W/m·K)')
     plt.grid()
     plt.show()
 

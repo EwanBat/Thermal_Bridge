@@ -13,13 +13,14 @@ class Geometry:
         e (float): Concrete wall thickness (m)
         li (float): Insulation thickness (m)
         h (float): Floor height (m)
-        hi (float): Half-height of insulation (m)
+        hi (float): Height of interface air-wall (m)
         dx, dy (float): Spatial discretization steps
         dt (float): Time step
         Text1 (float): Initial external temperature (K)
         Text2 (float): Final external temperature (K)
         Tint (float): Interior temperature (K)
         Lmax (float): Maximum domain dimension (m)
+        Hmax (float): Maximum domain height (m)
         P (float): Room depth (m)
         Cth0 (float): Air thermal conductivity (W/m.K)
         Cth1 (float): Concrete thermal conductivity (W/m.K)
@@ -34,7 +35,7 @@ class Geometry:
 
     def __init__(self, n: int, m: int, 
                  e: float, li: float, h: float, hi: float, dx: float, dy: float, dt: float, 
-                 Text1: float, Text2: float, Tint: float, Lmax: float, P: float,
+                 Text1: float, Text2: float, Tint: float, Lmax: float, Hmax: float, P: float,
                  Cth0: float, Cth1: float, Cth2: float, hm1: float,
                  w: float, eps_iso: float, Coef: float):
         """
@@ -61,6 +62,7 @@ class Geometry:
         self.Text2 = Text2
         self.Tint = Tint
         self.Lmax = Lmax
+        self.Hmax = Hmax
         self.P = P
 
         self.Cth0 = Cth0
@@ -96,18 +98,18 @@ class Geometry:
             method (str): The method name corresponding to the desired configuration.
                           Options include 'mur', 'mur_inv', 'sans_isolation', 'classique',
                           'inv', 'rupteur', 'planelle_isolant', 'classique_plancher_isolant',
-                          and 'classique_plancher_simple'.
+                          and 'floor_simple_insulation'.
         """
         method_dict = {
             'mur': self.mur,
             'mur_inv': self.mur_inv,
             'sans_isolation': self.sans_isolation,
             'classique': self.classique,
-            'inv': self.inv,
+            'external': self.external,
             'rupteur': self.rupteur,
             'planelle_isolant': self.planelle_isolant,
-            'classique_plancher_isolant': self.classique_plancher_isolant,
-            'classique_plancher_simple': self.classique_plancher_simple
+            'floor_double_insulation': self.floor_double_insulation,
+            'floor_simple_insulation': self.floor_simple_insulation
         }
         
         if method in method_dict:
@@ -161,7 +163,7 @@ class Geometry:
 
     def classique(self):
         """
-        Creates a classic configuration with distributed insulation.
+        Creates a standard configuration with internal insulation on the wall.
         Structure: [Ext | Concrete | Insulation+Concrete | Int air]
         """
         self.Nom_Geometry = 'classique'
@@ -177,9 +179,9 @@ class Geometry:
             self.G[int(self.hi/self.dy)+1:int((self.h+self.hi)/self.dy)+1, i] = [[1, self.Cth1] for _ in range(int(self.hi/self.dy)+1, int((self.h+self.hi)/self.dy)+1)]
             self.G[int((self.h+self.hi)/self.dy)+1:, i] = [[0, self.Cth0] for _ in range(int((self.h+self.hi)/self.dy)+1, self.m)]
 
-    def inv(self):
+    def external(self):
         """
-        Creates an inverted configuration with internal insulation.
+        Creates an inverted configuration with external insulation on the wall.
         Structure: [Ext | Insulation | Concrete+Floor | Int air]
         """
         self.Nom_Geometry = 'inversée'
@@ -243,13 +245,13 @@ class Geometry:
             self.G[int(self.hi/self.dy)+1:int((self.h+self.hi)/self.dy)+1, i] = [[1, self.Cth1] for _ in range(int(self.hi/self.dy)+1, int((self.h+self.hi)/self.dy)+1)]
             self.G[int((self.h+self.hi)/self.dy)+1:, i] = [[0, self.Cth0] for _ in range(int((self.h+self.hi)/self.dy)+1, self.m)]
 
-    def classique_plancher_isolant(self):
+    def floor_double_insulation(self):
         """
         Creates a configuration with insulated floor.
         Structure: [Ext | Concrete | Insulation+Concrete | Air+Insulation+Concrete+Insulation | Int air]
         Includes an insulation layer in the floor.
         """
-        self.Nom_Geometry = 'plancher isolé'
+        self.Nom_Geometry = 'double insulated floor'
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
@@ -264,13 +266,13 @@ class Geometry:
             self.G[int((self.h+self.hi)/self.dy)+1:int((self.h+self.hi+self.eps_iso)/self.dy)+1, i] = [[2, self.Cth2] for _ in range(int((self.h+self.hi)/self.dy)+1, int((self.h+self.hi+self.eps_iso)/self.dy)+1)]
             self.G[int((self.h+self.hi+self.eps_iso)/self.dy)+1:, i] = [[0, self.Cth0] for _ in range(int((self.h+self.hi+self.eps_iso)/self.dy)+1, self.m)]
 
-    def classique_plancher_simple(self):
+    def floor_simple_insulation(self):
         """
         Creates a configuration with simple floor.
         Structure: [Ext | Concrete | Insulation+Concrete | Air+Insulation+Concrete | Int air]
         Simplified version without additional floor insulation.
         """
-        self.Nom_Geometry = 'plancher simple'
+        self.Nom_Geometry = 'one face insulated floor'
         self.G[:, 0] = [[-1, self.Cth0] for _ in range(self.m)]
         for i in range(1, int(self.e/self.dx)+1):
             self.G[:, i] = [[1, self.Cth1] for _ in range(self.m)]
